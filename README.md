@@ -26,7 +26,7 @@ streamlit run app.py
 
 https://loan-eligibility-ai-assistant-dec2473tcbstrxjecux9ta.streamlit.app/
 
-# 4. UPLOAD TO GITHUB
+
 
 ## Open terminal:
 
