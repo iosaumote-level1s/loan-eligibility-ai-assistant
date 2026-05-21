@@ -19,11 +19,12 @@ AI-powered BFSI application using Streamlit + Gemini AI.
 
 ```bash
 pip install -r requirements.txt
-python -m streamlit run app.py
+streamlit run app.py
+```
 
-Portfolio projects with documentation look MUCH more professional. :contentReference[oaicite:0]{index=0}
+## Live Demo
 
----
+https://loan-eligibility-ai-assistant-dec2473tcbstrxjecux9ta.streamlit.app/
 
 # 4. UPLOAD TO GITHUB
 
