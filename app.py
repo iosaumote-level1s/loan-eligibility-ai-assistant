@@ -6,7 +6,7 @@ import google.generativeai as genai
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
 # Load Gemini model
-model = genai.GenerativeModel("gemini-flash-latest")
+model = genai.GenerativeModel("gemini-pro")
 
 # Page Config
 st.set_page_config(page_title="Loan Eligibility AI Assistant")
