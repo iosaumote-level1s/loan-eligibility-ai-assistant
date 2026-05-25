@@ -201,9 +201,23 @@ if uploaded_file is not None:
 
         try:
 
+        
+
             response = model.generate_content(prompt)
 
             ai_recommendation = response.text
+
+        except Exception:
+
+            ai_recommendation = """
+            AI recommendation temporarily unavailable due to API usage limits.
+
+            Suggested Banking Advice:
+            - Maintain healthy credit score
+            - Reduce existing EMI burden
+            - Improve savings ratio
+            - Maintain stable repayment history
+            """
 
         except Exception as e:
 
