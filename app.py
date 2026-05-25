@@ -1,318 +1,214 @@
 import streamlit as st
 import pandas as pd
-import google.generativeai as genai
-import plotly.express as px
 import numpy as np
+import plotly.express as px
 
-# ==============================
-# GEMINI API CONFIGURATION
-# ==============================
-
-genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-
-# Load Gemini Model
-model = genai.GenerativeModel("gemini-1.5-flash")
-
-# ==============================
+# =========================
 # PAGE CONFIG
-# ==============================
+# =========================
 
 st.set_page_config(
-    page_title="AI BFSI Credit Intelligence Platform",
+    page_title="AI Loan Eligibility Dashboard",
     layout="wide"
 )
 
-# ==============================
+# =========================
 # TITLE
-# ==============================
+# =========================
 
-st.title("🏦 AI BFSI Credit Intelligence Platform")
+st.title("🏦 AI-Powered Loan Eligibility Dashboard")
 
-st.write(
-    "AI-powered banking analytics dashboard for loan eligibility, risk analysis, fraud scoring, and customer segmentation."
-)
+st.write("Upload customer financial data for smart loan analysis.")
 
-# ==============================
-# EMI CALCULATOR
-# ==============================
-
-st.subheader("💰 EMI Calculator")
-
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    loan_amount = st.number_input(
-        "Loan Amount",
-        value=500000
-    )
-
-with col2:
-    interest_rate = st.number_input(
-        "Interest Rate (%)",
-        value=8.5
-    )
-
-with col3:
-    loan_tenure = st.number_input(
-        "Tenure (Years)",
-        value=5
-    )
-
-monthly_rate = interest_rate / 12 / 100
-months = loan_tenure * 12
-
-emi = (
-    loan_amount
-    * monthly_rate
-    * (1 + monthly_rate) ** months
-) / (
-    (1 + monthly_rate) ** months - 1
-)
-
-st.success(f"Estimated Monthly EMI: ₹{int(emi)}")
-
-st.divider()
-
-# ==============================
+# =========================
 # FILE UPLOAD
-# ==============================
+# =========================
 
 uploaded_file = st.file_uploader(
-    "📂 Upload CSV File",
+    "Upload CSV File",
     type=["csv"]
 )
 
-# ==============================
-# PROCESS DATA
-# ==============================
+# =========================
+# PROCESS FILE
+# =========================
 
 if uploaded_file is not None:
 
-    # Read CSV
     df = pd.read_csv(uploaded_file)
 
     st.subheader("📄 Uploaded Customer Data")
-
     st.dataframe(df)
 
     results = []
 
-    # ==============================
-    # ANALYSIS LOOP
-    # ==============================
+    # =========================
+    # PROCESS EACH CUSTOMER
+    # =========================
 
     for index, row in df.iterrows():
 
         name = row["Name"]
         income = row["Monthly_Income"]
-        emi_existing = row["Existing_EMI"]
+        emi = row["Existing_EMI"]
         credit = row["Credit_Score"]
         employment = row["Employment_Type"]
         expenses = row["Monthly_Expenses"]
 
-        # ==============================
+        # =========================
         # ELIGIBILITY LOGIC
-        # ==============================
+        # =========================
 
-        disposable_income = income - emi_existing - expenses
+        eligibility = (income - emi - expenses) * 5
 
-        eligibility = disposable_income * 15
+        if eligibility < 0:
+            eligibility = 0
 
-        # ==============================
-        # RISK ANALYSIS
-        # ==============================
+        # =========================
+        # RISK LOGIC
+        # =========================
 
         if credit >= 750:
             risk = "Low Risk"
-            recommendation = "Eligible for Home Loan"
-            product = "Premium Home Loan"
-
-        elif credit >= 700:
+        elif credit >= 650:
             risk = "Medium Risk"
-            recommendation = "Eligible for Personal Loan"
-            product = "Standard Personal Loan"
-
         else:
             risk = "High Risk"
-            recommendation = "Loan Approval Needs Review"
-            product = "Secured Loan"
 
-        # ==============================
-        # APPROVAL PERCENTAGE
-        # ==============================
+        # =========================
+        # RECOMMENDATION
+        # =========================
 
-        approval_percentage = min(
-            95,
-            max(
-                40,
-                int((credit / 900) * 100)
-            )
-        )
+        if risk == "Low Risk":
+            recommendation = "Eligible for Home Loan"
+            product = "Premium Home Loan"
+            approval = "90%"
+            segment = "Prime Customer"
+            fraud_score = "Low"
 
-        # ==============================
-        # CUSTOMER SEGMENTATION
-        # ==============================
+            ai_recommendation = f"""
+Customer {name} is financially stable.
 
-        if income >= 100000:
-            segment = "Premium"
+Recommended Actions:
+- Offer premium products
+- Cross-sell insurance
+- Increase credit limit
+"""
 
-        elif income >= 60000:
-            segment = "Standard"
+        elif risk == "Medium Risk":
+            recommendation = "Eligible for Personal Loan"
+            product = "Standard Personal Loan"
+            approval = "70%"
+            segment = "Growth Customer"
+            fraud_score = "Medium"
+
+            ai_recommendation = f"""
+Customer {name} has moderate repayment capability.
+
+Recommended Actions:
+- Monitor EMI ratio
+- Offer medium-value loans
+- Encourage savings products
+"""
 
         else:
-            segment = "Basic"
+            recommendation = "Loan Requires Review"
+            product = "Basic Banking Products"
+            approval = "40%"
+            segment = "Risky Customer"
+            fraud_score = "High"
 
-        # ==============================
-        # FRAUD SCORE
-        # ==============================
+            ai_recommendation = f"""
+Customer {name} has higher financial risk.
 
-        fraud_score = np.random.randint(5, 30)
+Recommended Actions:
+- Verify income documents
+- Reduce loan exposure
+- Improve credit score first
+"""
 
-        if credit < 650:
-            fraud_score += 40
-
-        # ==============================
-        # GEMINI AI PROMPT
-        # ==============================
-
-        prompt = f"""
-        You are a senior BFSI banking analyst.
-
-        Analyze this customer:
-
-        Name: {name}
-        Monthly Income: {income}
-        Existing EMI: {emi_existing}
-        Credit Score: {credit}
-        Employment Type: {employment}
-        Monthly Expenses: {expenses}
-
-        Give:
-        1. Short banking recommendation
-        2. Risk summary
-        3. Best financial advice
-
-        Keep response professional and short.
-        """
-
-        # ==============================
-        # GEMINI RESPONSE
-        # ==============================
-
-        try:
-
-        
-
-            response = model.generate_content(prompt)
-
-            ai_recommendation = response.text
-
-        except Exception:
-
-            ai_recommendation = """
-            AI recommendation temporarily unavailable due to API usage limits.
-
-            Suggested Banking Advice:
-            - Maintain healthy credit score
-            - Reduce existing EMI burden
-            - Improve savings ratio
-            - Maintain stable repayment history
-            """
-
-        except Exception as e:
-
-            ai_recommendation = "AI recommendation unavailable."
-
-        # ==============================
+        # =========================
         # STORE RESULTS
-        # ==============================
+        # =========================
 
         results.append({
 
             "Name": name,
-
             "Eligibility_Amount": eligibility,
-
             "Risk_Level": risk,
-
             "Recommendation": recommendation,
-
             "Suggested_Product": product,
-
-            "Approval_Percentage": f"{approval_percentage}%",
-
+            "Approval_Chance": approval,
             "Customer_Segment": segment,
-
             "Fraud_Score": fraud_score,
-
             "AI_Recommendation": ai_recommendation
+
         })
 
-    # ==============================
+    # =========================
     # RESULTS DATAFRAME
-    # ==============================
+    # =========================
 
     result_df = pd.DataFrame(results)
 
-    # ==============================
-    # KPI DASHBOARD
-    # ==============================
+    st.subheader("✅ Loan Eligibility Results")
+    st.dataframe(result_df)
+
+    # =========================
+    # KPI METRICS
+    # =========================
 
     st.subheader("📊 Dashboard KPIs")
 
-    total_customers = len(result_df)
+    col1, col2, col3, col4 = st.columns(4)
 
-    avg_eligibility = int(
-        result_df["Eligibility_Amount"].mean()
+    col1.metric(
+        "Total Customers",
+        len(result_df)
     )
 
-    total_loan_amount = int(
-        result_df["Eligibility_Amount"].sum()
+    col2.metric(
+        "Average Eligibility",
+        f"₹ {int(result_df['Eligibility_Amount'].mean())}"
     )
 
-    avg_fraud = int(
-        result_df["Fraud_Score"].mean()
+    low_risk_count = len(
+        result_df[result_df["Risk_Level"] == "Low Risk"]
     )
 
-    kpi1, kpi2, kpi3, kpi4 = st.columns(4)
-
-    kpi1.metric(
-        "Customers",
-        total_customers
+    col3.metric(
+        "Low Risk Customers",
+        low_risk_count
     )
 
-    kpi2.metric(
-        "Avg Eligibility",
-        f"₹{avg_eligibility}"
+    avg_credit = int(df["Credit_Score"].mean())
+
+    col4.metric(
+        "Average Credit Score",
+        avg_credit
     )
 
-    kpi3.metric(
-        "Total Loan Amount",
-        f"₹{total_loan_amount}"
+    # =========================
+    # RISK DISTRIBUTION CHART
+    # =========================
+
+    st.subheader("📈 Risk Distribution")
+
+    risk_chart = px.pie(
+        result_df,
+        names="Risk_Level",
+        title="Customer Risk Distribution"
     )
 
-    kpi4.metric(
-        "Avg Fraud Score",
-        avg_fraud
-    )
+    st.plotly_chart(risk_chart)
 
-    # ==============================
-    # RESULTS TABLE
-    # ==============================
+    # =========================
+    # ELIGIBILITY CHART
+    # =========================
 
-    st.subheader("🏦 Loan Eligibility Results")
+    st.subheader("💰 Eligibility Amount Analysis")
 
-    st.dataframe(result_df)
-
-    # ==============================
-    # CHARTS
-    # ==============================
-
-    st.subheader("📈 Loan Eligibility Analysis")
-
-    # Bar Chart
-
-    fig1 = px.bar(
+    eligibility_chart = px.bar(
         result_df,
         x="Name",
         y="Eligibility_Amount",
@@ -320,52 +216,68 @@ if uploaded_file is not None:
         title="Loan Eligibility by Customer"
     )
 
-    st.plotly_chart(fig1, use_container_width=True)
+    st.plotly_chart(eligibility_chart)
 
-    # Pie Chart
+    # =========================
+    # CUSTOMER SEGMENTATION
+    # =========================
 
-    fig2 = px.pie(
+    st.subheader("👥 Customer Segmentation")
+
+    segment_chart = px.histogram(
         result_df,
-        names="Customer_Segment",
-        title="Customer Segmentation"
-    )
-
-    st.plotly_chart(fig2, use_container_width=True)
-
-    # Fraud Histogram
-
-    fig3 = px.histogram(
-        result_df,
-        x="Fraud_Score",
+        x="Customer_Segment",
         color="Risk_Level",
-        title="Fraud Score Distribution"
+        title="Customer Segments"
     )
 
-    st.plotly_chart(fig3, use_container_width=True)
+    st.plotly_chart(segment_chart)
 
-    # Approval Percentage Chart
+    # =========================
+    # EMI CALCULATOR
+    # =========================
 
-    fig4 = px.line(
-        result_df,
-        x="Name",
-        y=[
-            int(x.replace("%", ""))
-            for x in result_df["Approval_Percentage"]
-        ],
-        markers=True,
-        title="Approval Percentage"
+    st.subheader("🏠 EMI Calculator")
+
+    loan_amount = st.number_input(
+        "Loan Amount",
+        value=500000
     )
 
-    st.plotly_chart(fig4, use_container_width=True)
+    interest_rate = st.number_input(
+        "Interest Rate (%)",
+        value=8.5
+    )
 
-    # ==============================
-    # DOWNLOAD CSV
-    # ==============================
+    tenure = st.number_input(
+        "Loan Tenure (Years)",
+        value=5
+    )
+
+    monthly_rate = interest_rate / 12 / 100
+
+    months = tenure * 12
+
+    emi_value = (
+        loan_amount
+        * monthly_rate
+        * ((1 + monthly_rate) ** months)
+    ) / (
+        ((1 + monthly_rate) ** months) - 1
+    )
+
+    st.success(
+        f"Estimated EMI: ₹ {int(emi_value)} per month"
+    )
+
+    # =========================
+    # DOWNLOAD RESULTS
+    # =========================
 
     csv = result_df.to_csv(index=False)
 
     st.download_button(
-        label="⬇ Download Results CSV",
+        label="📥 Download Results CSV",
         data=csv,
         file_name="loan_analysis_results.csv",
         mime="text/csv"
